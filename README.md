@@ -24,3 +24,17 @@ cd vunix
 
 # Запустить загрузчик
 ./tinyboot
+```
+## 🤝 Участие в проекте
+Приветствуются:
+Исправления ошибок
+Реализация новых системных вызовов
+Улучшение документации
+Создание тестов
+
+Правила:
+1. Форкните репозиторий
+2. Создайте ветку (git checkout -b feature/your-feature)
+3. Коммитьте (git commit -am 'Add awesome feature')
+4. Пушите (git push origin feature/your-feature)
+5. Создайте Pull Request
