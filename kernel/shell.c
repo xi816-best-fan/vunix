@@ -11,10 +11,15 @@ void shell() {
 		printf("root@vunix: ");
 		fgets(str, sizeof(str), stdin);
 		str[strcspn(str, "\n")] = '\0';
-		if(!strcmp(str, "exit")) {
+    if (!*str) {
+      continue;
+    }
+		else if(!strcmp(str, "exit")) {
 			break;
 		} else if(!strncmp(str, "echo ", 5)) {
 			printf("%s\n", str+5);
+		} else if(!strcmp(str, "clear")) {
+			fputs("\033[H\033[2J", stdout);
 		} else if(!strcmp(str, "help")) {
 			printf("  exit\t\texit\n  echo <str>\techo\n  ls\t\tlist files\n  cat <file>\tshow file contents\n  exec\t\texec binary\n  help\t\thelp\n");
 		} else if(!strcmp(str, "ls")) {
@@ -30,15 +35,25 @@ void shell() {
 				}
 			}
 			putchar('\n');
-		} else if(!strncmp(str, "cat ", 4)){
-			File* f = sys_open(str+4);
-			if(f == NULL) {
-				printf("File %s doesn`t exist\n", str+4);
-			} else {
-				printf("%s\n", f->content);
-			}
-		} else if(!strncmp(str, "exec ", 5)) {
-			exec(str+5);
+		} else if(!strncmp(str, "cat", 3)){
+      if (!*(str+4)) {
+        puts("cat -- Output file content");
+        puts("Usage: cat <file>");
+      }
+      else {
+  			File* f = sys_open(str+4);
+	  		if(f == NULL) {
+		  		printf("File %s doesn`t exist\n", str+4);
+			  } else {
+				  printf("%s\n", f->content);
+			  }
+      }
+		} else if(!strncmp(str, "exec", 4)) {
+      if (!*(str+5)) {
+        puts("exec -- Load v.out files to memory and execute them");
+        puts("Usage: exec <file>");
+      }
+      else exec(str+5);
 		} else {
 			printf("Unknown command: %s\n", str);
 		}

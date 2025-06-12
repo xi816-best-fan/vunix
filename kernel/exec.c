@@ -5,7 +5,7 @@
 #include <termios.h>
 #include "vfs.h"
 #include "exec.h"
-#include "a.out.h"
+#include "v.out.h"
 #include "panic.h"
 
 #define TEXTOFFS 0x0000
@@ -157,11 +157,11 @@ int cpu_step(risc_gc* cpu) {
       break;
 
     case 0x13: // SHL R1, R2, R3, IMM
-      cpu->regs[reg1] <<= cpu->regs[reg2] + cpu->regs[reg3] + imm;
+      cpu->regs[(int)reg1] <<= cpu->regs[(int)reg2] + cpu->regs[(int)reg3] + imm;
       break;
 
     case 0x14: // SHR R1, R2, R3, IMM
-      cpu->regs[reg1] >>= cpu->regs[reg2] + cpu->regs[reg3] + imm;
+      cpu->regs[(int)reg1] >>= cpu->regs[(int)reg2] + cpu->regs[(int)reg3] + imm;
       break;
 
     case 0x15: // PSH R1+IMM
@@ -169,12 +169,12 @@ int cpu_step(risc_gc* cpu) {
       break;
 
     case 0x16: // POP R1
-      cpu->regs[reg1] = pop(cpu);
+      cpu->regs[(int)reg1] = pop(cpu);
       break;
 
     case 0x17: // CALL R1+IMM16
       push(cpu, cpu->pc+4);
-      cpu->pc = cpu->regs[reg1] + ((cpu->regs[reg3] << 12) | imm);
+      cpu->pc = cpu->regs[(int)reg1] + ((cpu->regs[(int)reg3] << 12) | imm);
       break;
 
     case 0x18: // RET
@@ -223,7 +223,7 @@ int exec(char* filename) {
   // File* f = sys_open(filename);
   // if(!f) return -1;
   // memcpy(cpu.memory, f->content, MEMORY_SIZE);
-  read_AOut(cpu.memory, filename);
+  read_VOut(cpu.memory, filename);
 
   struct termios oldt;
   struct termios newt;
