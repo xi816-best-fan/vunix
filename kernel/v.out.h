@@ -10,5 +10,5 @@ typedef struct {
   uint32_t small;   // small memory model
 } __attribute__((packed)) AOutHeader;
 
-int read_AOut(uint8_t* mem, char* filename);
+int read_VOut(uint8_t* mem, char* filename);
 

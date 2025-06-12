@@ -4,10 +4,10 @@
 #include <unistd.h>
 #include <string.h>
 #include "vfs.h"
-#include "a.out.h"
+#include "v.out.h"
 #include "panic.h"
 
-int read_AOut(uint8_t* mem, char* filename) {
+int read_VOut(uint8_t* mem, char* filename) {
   File* f = sys_open(filename);
   AOutHeader header = {0};
   memcpy(&header, f->content, 0x24);
@@ -16,9 +16,10 @@ int read_AOut(uint8_t* mem, char* filename) {
   uint16_t textoffs = header.tooffs;
   uint16_t dataoffs = header.dooffs;
   memcpy(mem+textoffs, f->content+0x40, header.text);
-  printf("  .text loaded at 0x%04X\n", header.tooffs);
-  printf("  .data loaded at 0x%04X\n", header.dooffs);
-  printf(header.small ? "  .data loaded right after .text\n" : "  .data loaded separately\n");
+  // printf("  .text loaded at 0x%04X\n", header.tooffs);
+  // printf("  .data loaded at 0x%04X\n", header.dooffs);
+  // printf(header.small ? "  .data loaded right after .text\n" : "  .data loaded separately\n");
+  puts("starting Vunix CPU");
   memcpy(mem+dataoffs+(header.text * (header.small ? 1 : 0)), f->content+header.text+0x40, header.data);
   if (0) {
     printf("magic number (1488) for vunix: %08X\n", header.pizdmag);
