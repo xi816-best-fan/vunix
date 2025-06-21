@@ -19,6 +19,7 @@ typedef struct {
 #define FLAG_CARRY (1 << 1)
 #define FLAG_SIGN  (1 << 2)
 
-int exec(char* filename);
+int exec(risc_gc* cpu, char* filename);
+void cpu_dump(risc_gc* cpu);
 
 #endif

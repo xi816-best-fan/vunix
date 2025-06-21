@@ -262,12 +262,14 @@ ParseInst = lambda toks, b, pos, pc: \
   ((ASTINS, "mov-rr", (toks[pos+1][1], toks[pos+2][1]), pos + 3) if ((b == "mov") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "mov-ri", (toks[pos+1][1], toks[pos+2][1]), pos + 3) if ((b == "mov") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
    (ASTINS, "mov-rl", (toks[pos+1][1], toks[pos+2][1]), pos + 3) if ((b == "mov") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_ID)) else
-   (ASTINS, "add-rrri", (toks[pos+1][1], toks[pos+2][1], toks[pos+3][1], toks[pos+4][1]), pos + 5) if ((b == "add") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG) and (toks[pos+3][0] == T_REG) and (toks[pos+4][0] == T_INT)) else
-   (ASTINS, "sub-rrri", (toks[pos+1][1], toks[pos+2][1], toks[pos+3][1], toks[pos+4][1]), pos + 5) if ((b == "sub") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG) and (toks[pos+3][0] == T_REG) and (toks[pos+4][0] == T_INT)) else
-   (ASTINS, "and-rrr", (toks[pos+1][1], toks[pos+2][1], toks[pos+3][1]), pos + 4) if ((b == "and") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG) and (toks[pos+3][0] == T_REG)) else
-   (ASTINS, "or-rrr", (toks[pos+1][1], toks[pos+2][1], toks[pos+3][1]), pos + 4) if ((b == "or") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG) and (toks[pos+3][0] == T_REG)) else
-   (ASTINS, "xor-rrr", (toks[pos+1][1], toks[pos+2][1], toks[pos+3][1]), pos + 4) if ((b == "xor") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG) and (toks[pos+3][0] == T_REG)) else
-   (ASTINS, "not-rrr", (toks[pos+1][1], toks[pos+2][1]), pos + 3) if ((b == "not") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "add-rri", (toks[pos+1][1], 0, toks[pos+2][1]), pos + 3) if ((b == "add") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
+   (ASTINS, "sub-rri", (toks[pos+1][1], 0, toks[pos+2][1]), pos + 3) if ((b == "sub") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
+   (ASTINS, "add-rri", (toks[pos+1][1], toks[pos+2][1], toks[pos+3][1]), pos + 4) if ((b == "add") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG) and (toks[pos+3][0] == T_INT)) else
+   (ASTINS, "sub-rri", (toks[pos+1][1], toks[pos+2][1], toks[pos+3][1]), pos + 4) if ((b == "sub") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG) and (toks[pos+3][0] == T_INT)) else
+   (ASTINS, "and-rr", (toks[pos+1][1], toks[pos+2][1]), pos + 3) if ((b == "and") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "or-rr", (toks[pos+1][1], toks[pos+2][1]), pos + 3) if ((b == "or") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "xor-rr", (toks[pos+1][1], toks[pos+2][1]), pos + 3) if ((b == "xor") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "not-rr", (toks[pos+1][1], toks[pos+2][1]), pos + 3) if ((b == "not") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "jmp-i", (toks[pos+1][1]), pos + 2) if ((b == "jmp") and (toks[pos+1][0] == T_INT)) else
    (ASTINS, "jmp-l", (toks[pos+1][1]), pos + 2) if ((b == "jmp") and (toks[pos+1][0] == T_ID)) else
    (ASTINS, "jz-i", (toks[pos+1][1]), pos + 2) if ((b == "jz") and (toks[pos+1][0] == T_INT)) else
@@ -352,30 +354,30 @@ def Parse(toks: list, filename: str, expm: int) -> list:
 # Big endian
 AsWord = lambda a: ((a >> 8), (a & 0xFF));
 As32   = lambda a: ((a >> 24), ((a >> 16) & 0xFF), ((a >> 8) & 0xFF), (a & 0xFF));
-get_inst3regfull = lambda opcode,r1,r2,r3,imm12: (opcode << 24) | (r1 << 20) | (r2 << 16) | (r3 << 12) | imm12;
-get_inst3reg     = lambda opcode,r1,r2,r3,imm12: As32(get_inst3regfull(opcode,r1,r2,r3,imm12));
+get_inst3regfull = lambda opcode,r1,r2,imm16: (opcode << 24) | (r1 << 20) | (r2 << 16) | imm16;
+get_inst3reg     = lambda opcode,r1,r2,imm16: As32(get_inst3regfull(opcode,r1,r2,imm16));
 
 CompileInst = lambda prog, b, labels, pos: \
   ((get_inst3reg(0x00, 0, 0, 0, 0), pos+1)                                          if (b[1] == "nop") else
-   (get_inst3reg(0x01, b[2][0], b[2][1], 0, 0), pos+1)                              if (b[1] == "mov-rr") else
-   (get_inst3reg(0x02, b[2][0], 0, 0, b[2][1]), pos+1)                              if (b[1] == "mov-ri") else
-   (get_inst3reg(0x02, b[2][0], 0, 0, labels[b[2][1]]), pos+1)                      if (b[1] == "mov-rl") else
-   (get_inst3reg(0x03, *b[2]), pos+1)                                               if (b[1] == "add-rrri") else
-   (get_inst3reg(0x04, *b[2]), pos+1)                                               if (b[1] == "sub-rrri") else
-   (get_inst3reg(0x05, *b[2], 0), pos+1)                                            if (b[1] == "and-rrr") else
-   (get_inst3reg(0x06, *b[2], 0), pos+1)                                            if (b[1] == "or-rrr") else
-   (get_inst3reg(0x07, *b[2], 0), pos+1)                                            if (b[1] == "xor-rrr") else
-   (get_inst3reg(0x08, *b[2], 0, 0), pos+1)                                         if (b[1] == "not-rr") else
-   (get_inst3reg(0x09, b[2][0], b[2][1]["r1"], b[2][1]["r2"], b[2][1]["i"]), pos+1) if (b[1] == "ld-rs") else
-   (get_inst3reg(0x0A, b[2][0], b[2][1]["r1"], b[2][1]["r2"], b[2][1]["i"]), pos+1) if (b[1] == "st-rs") else
-   (get_inst3reg(0x0B, 0, 0, 0, b[2][0]), pos+1)                                    if (b[1] == "jmp-i") else
-   (get_inst3reg(0x0B, 0, 0, 0, labels[b[2]]), pos+1)                               if (b[1] == "jmp-l") else
-   (get_inst3reg(0x0D, 0, 0, 0, b[2][0]), pos+1)                                    if (b[1] == "jz-i") else
-   (get_inst3reg(0x0D, 0, 0, 0, labels[b[2]]), pos+1)                               if (b[1] == "jz-l") else
-   (get_inst3reg(0x0F, 0, 0, 0, b[2][0]), pos+1)                                    if (b[1] == "jnz-i") else
-   (get_inst3reg(0x0F, 0, 0, 0, labels[b[2]]), pos+1)                               if (b[1] == "jnz-l") else
-   (get_inst3reg(0x11, 0, 0, 0, b[2]), pos+1)                                       if (b[1] == "int-i") else
-   (get_inst3reg(0x12, 0, 0, 0, 0), pos+1)                                          if (b[1] == "hlt") else
+   (get_inst3reg(0x01, b[2][0], b[2][1], 0), pos+1)                              if (b[1] == "mov-rr") else
+   (get_inst3reg(0x01, b[2][0], 0, b[2][1]), pos+1)                              if (b[1] == "mov-ri") else
+   (get_inst3reg(0x01, b[2][0], 0, labels[b[2][1]]), pos+1)                      if (b[1] == "mov-rl") else
+   (get_inst3reg(0x03, *b[2]), pos+1)                                               if (b[1] == "add-rri") else
+   (get_inst3reg(0x04, *b[2]), pos+1)                                               if (b[1] == "sub-rri") else
+   (get_inst3reg(0x05, *b[2], 0), pos+1)                                            if (b[1] == "and-rr") else
+   (get_inst3reg(0x06, *b[2], 0), pos+1)                                            if (b[1] == "or-rr") else
+   (get_inst3reg(0x07, *b[2], 0), pos+1)                                            if (b[1] == "xor-rr") else
+   (get_inst3reg(0x08, *b[2], 0), pos+1)                                         if (b[1] == "not-rr") else
+   (get_inst3reg(0x09, b[2][0], b[2][1]["r1"], b[2][1]["i"]), pos+1) if (b[1] == "ld-rs") else
+   (get_inst3reg(0x0A, b[2][0], b[2][1]["r1"], b[2][1]["i"]), pos+1) if (b[1] == "st-rs") else
+   (get_inst3reg(0x0C, 0, 0, b[2][0]), pos+1)                                    if (b[1] == "jmp-i") else
+   (get_inst3reg(0x0C, 0, 0, labels[b[2]]), pos+1)                               if (b[1] == "jmp-l") else
+   (get_inst3reg(0x0E, 0, 0, b[2][0]), pos+1)                                    if (b[1] == "jz-i") else
+   (get_inst3reg(0x0E, 0, 0, labels[b[2]]), pos+1)                               if (b[1] == "jz-l") else
+   (get_inst3reg(0x0F, 0, 0, b[2][0]), pos+1)                                    if (b[1] == "jnz-i") else
+   (get_inst3reg(0x0F, 0, 0, labels[b[2]]), pos+1)                               if (b[1] == "jnz-l") else
+   (get_inst3reg(0x11, 0, 0, b[2]), pos+1)                                       if (b[1] == "int-i") else
+   (get_inst3reg(0x12, 0, 0, 0), pos+1)                                          if (b[1] == "hlt") else
    [print("vasm: unknown compilation node %s" % b[1]), (tuple(), 0x1_00_0000)][1]
   );
 
@@ -480,7 +482,7 @@ def main(argc: int, argv: list) -> int:
   for imp_file in imp_files:
     labs = ImportLabs(progname, labs, imp_file);
   co, exitcode = CompileRiscGC(ast, labs);
-  c = [b"\x88\x14\x00\x00\x00\x20\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"+co, co][gen_vout];
+  c = [co, b"\x88\x14\x00\x00\x00\x20\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"+co][gen_vout];
   print(f"resulting {len(c)} bytes total");
   with open(outname, "wb") as fl:
     fl.write(c);
