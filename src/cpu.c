@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <termios.h>
-#include "exec.h"
+#include "cpu.h"
 
 struct termios oldt;
 struct termios newt;
@@ -33,13 +33,13 @@ void cpu_write16(risc_gc* cpu, short address, uint16_t value) {
 }
 
 void push(risc_gc* cpu, uint16_t val) {
-  cpu->regs[15] -= 2;
-  cpu_write(cpu, cpu->regs[15], val);
+  cpu->SP -= 2;
+  cpu_write(cpu, cpu->SP, val);
 }
 
 uint16_t pop(risc_gc* cpu) {
-  uint16_t a = cpu_read16(cpu, cpu->regs[15]);
-  cpu->regs[15] += 2;
+  uint16_t a = cpu_read16(cpu, cpu->SP);
+  cpu->SP += 2;
   return a;
 }
 
@@ -145,73 +145,92 @@ int cpu_step(risc_gc* cpu) {
       cpu->regs[(int)reg1] <<= cpu->regs[(int)reg2] + imm;
       break;
 
-  case 0x14: // SHR R1, R2, IMM
-    cpu->regs[(int)reg1] >>= cpu->regs[(int)reg2] + imm;
-    break;
+    case 0x14: // SHR R1, R2, IMM
+      cpu->regs[(int)reg1] >>= cpu->regs[(int)reg2] + imm;
+      break;
 
-  case 0x15: // PSH R1+IMM
-    push(cpu, cpu->regs[(int)reg1+imm]);
-    break;
+    case 0x15: // PSH R1+IMM
+      push(cpu, cpu->regs[(int)reg1+imm]);
+      break;
 
-  case 0x16: // POP R1
-    cpu->regs[(int)reg1] = pop(cpu);
-    break;
+    case 0x16: // POP R1
+      cpu->regs[(int)reg1] = pop(cpu);
+      break;
 
-  case 0x17: // CALL R1+IMM
-    push(cpu, cpu->pc+4);
-    cpu->pc = cpu->regs[(int)reg1] + imm;
-    break;
+    case 0x17: // CALL R1+IMM
+      push(cpu, cpu->pc+4);
+      cpu->pc = cpu->regs[(int)reg1] + imm;
+      break;
 
-  case 0x18: // RET
-    cpu->pc = pop(cpu);
-    break;
+    case 0x18: // RET
+      cpu->pc = pop(cpu);
+      break;
 
-  case 0x19: // LW R1, [R2+IMM12]
-    cpu->regs[(int)reg1] = cpu_read16(cpu, cpu->regs[(int)reg2]+imm);
-    break;
+    case 0x19: // LW R1, [R2+IMM12]
+      cpu->regs[(int)reg1] = cpu_read16(cpu, cpu->regs[(int)reg2]+imm);
+      break;
 
-  case 0x1A: //SW [R1+imm], R2
-    cpu_write16(cpu, cpu->regs[(int)reg1]+imm, cpu->regs[(int)reg2]);
-    break;
+    case 0x1A: // SW [R1+imm], R2
+      cpu_write16(cpu, cpu->regs[(int)reg1]+imm, cpu->regs[(int)reg2]);
+      break;
 
-  default:
-    printf("Unknown command: 0x%02X at 0x%04X\n", opcode, cpu->pc);
-    fflush(stdout);
-    return -1;
+    case 0x20: // CMP R1, R2, IMM
+      update_flags(cpu, REG(reg1)-REG(reg2)-imm);
+      break;
+
+    default:
+      printf("Unknown command: 0x%02X at 0x%04X\n", opcode, cpu->pc);
+      fflush(stdout);
+      return -1;
   }
   cpu->pc += 4;
   return 1;
 }
 
 void cpu_dump(risc_gc* cpu) {
-  for (int i = 0; i < 48; i++) {
-    printf("%02X ", cpu->memory[i]);
-  }
-  printf("\nPC: 0x%04X, IR: 0x%08X, FLAGS: 0x%04X\n", cpu->pc, cpu->ir, cpu->flags);
-  printf("Regs:\n");
+  printf("\033[3A\033[33mPC\033[0m: 0x%04X, \033[33mIR\033[0m: 0x%08X, \033[33mFLAGS\033[0m: 0b%016b  \n", cpu->pc, cpu->ir, cpu->flags);
   for(int i = 0; i < NUM_REGS; i++) {
-    printf("R%d: 0x%04X ", i, cpu->regs[i]);
-    if((i+1)%4==0) putchar('\n');
+    printf("\033[32mR%02d\033[0m: 0x%04X ", i, cpu->regs[i]);
+    if((i+1)%8==0) putchar('\n');
   }
-  putchar('\n');
 }
 
-int exec(risc_gc* cpu, char* filename) {
+int exec(risc_gc* cpu, char debug) {
   int status;
+  if (debug) puts("\n\n");
   execcycle:
     status = cpu_step(cpu);
+    if (debug) { cpu_dump(cpu); getchar(); }
     if(status == 0) {
       tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
       return 0;
     } else if(status == -1) {
       tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+      fprintf(stderr, "еблан\n");
       return -1;
     }
     goto execcycle;
 }
 
 int main(int argc, char** argv) {
-  if (argc == 1) {
+  uint8_t argp = 1;
+  char* filename = NULL;
+  char debug = 0; // чар булеан а что
+  while (argp < argc) {
+    if ((!strcmp(argv[argp], "-d")) || (!strcmp(argv[argp], "--debug"))) {
+      debug = 1;
+      argp++;
+    }
+    else {
+      if (filename != NULL) {
+        fprintf(stderr, "чмо зачем мне второй файл\n");
+        return -1;
+      }
+      filename = argv[argp];
+      argp++;
+    }
+  }
+  if (!filename) {
     puts("чмо файл дай");
     return -1;
   }
@@ -223,8 +242,9 @@ int main(int argc, char** argv) {
   for(int i = 0; i < NUM_REGS; i++) {
     cpu.regs[i] = 0;
   }
+  cpu.SP = 0xC000;
   cpu.memory = malloc(MEMORY_SIZE);
-  FILE* f = fopen(argv[1], "r");
+  FILE* f = fopen(filename, "r");
   if (!f) {
     puts("чмо нет такого файла");
     return -1;
@@ -237,7 +257,7 @@ int main(int argc, char** argv) {
   newt.c_iflag &= ~(IXON);
   newt.c_lflag &= ~(ICANON | ECHO | /*ISIG |*/ IEXTEN);
   tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-  exec(&cpu, argv[1]);
+  exec(&cpu, debug);
   tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 }
 
