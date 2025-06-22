@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
     fprintf(stderr, "error: disk `%s` does not exist\n", diskname);
     return 1;
   }
-  unsigned char buf[MAX_DISK_SIZE];
+  char buf[MAX_DISK_SIZE];
   fread(buf, 1, MAX_DISK_SIZE, f2);
   uint32_t offs = 0;
   while (buf[offs] != 0xFF) offs++;

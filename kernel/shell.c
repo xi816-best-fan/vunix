@@ -3,7 +3,6 @@
 #include <string.h>
 #include "shell.h"
 #include "vfs.h"
-#include "exec.h"
 
 void shell() {
 	char str[128];
@@ -53,7 +52,7 @@ void shell() {
         puts("exec -- Load v.out files to memory and execute them");
         puts("Usage: exec <file>");
       }
-      else exec(str+5);
+      else puts("fuck you");
 		} else {
 			printf("Unknown command: %s\n", str);
 		}
