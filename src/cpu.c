@@ -34,7 +34,7 @@ void cpu_write16(risc_gc* cpu, short address, uint16_t value) {
 
 void push(risc_gc* cpu, uint16_t val) {
   cpu->SP -= 2;
-  cpu_write(cpu, cpu->SP, val);
+  cpu_write16(cpu, cpu->SP, val);
 }
 
 uint16_t pop(risc_gc* cpu) {
@@ -62,78 +62,72 @@ int cpu_step(risc_gc* cpu) {
   char reg1   = (cpu->ir & 0x00F00000) >> 20;
   char reg2   = (cpu->ir & 0x000F0000) >> 16;
   short imm   = (cpu->ir & 0x0000FFFF);
-  /*printf("opcode: \033[93m%02X\033[0m\n", opcode);
-  printf("reg1: \033[93m%01X\033[0m\n", reg1);
-  printf("reg2: \033[93m%01X\033[0m\n", reg2);
-  printf("imm16: \033[93m%04X\033[0m\n", imm);
-  cpu_dump(cpu);
-  getchar();*/
 
   switch(opcode) {
     case 0x00: //NOP
       break;
 
     case 0x01: //MOV R0, R1, IMM
-      cpu->regs[(int)reg1] = cpu->regs[(int)reg2] + imm;
+      REG(reg1) = REG(reg2) + imm;
       break;
 
     case 0x03: //ADD R0, R1, IMM
-      cpu->regs[(int)reg1] = cpu->regs[(int)reg1] + cpu->regs[(int)reg2] + imm;
-      update_flags(cpu, cpu->regs[(int)reg1]);
+      REG(reg1) = REG(reg1) + REG(reg2) + imm;
+      update_flags(cpu, REG(reg1));
       break;
       
     case 0x04: //SUB R0, R1, IMM
-      cpu->regs[(int)reg1] = cpu->regs[(int)reg1] - cpu->regs[(int)reg2] - imm;
-      update_flags(cpu, cpu->regs[(int)reg1]);
+      REG(reg1) = REG(reg1) - REG(reg2) - imm;
+      update_flags(cpu, REG(reg1));
       break;
 
     case 0x05: //AND R0, R1, IMM
-      cpu->regs[(int)reg1] = cpu->regs[(int)reg1] & cpu->regs[(int)reg2] + imm;
-      update_flags(cpu, cpu->regs[(int)reg1]);
+      REG(reg1) = REG(reg1) & REG(reg2) + imm;
+      update_flags(cpu, REG(reg1));
       break;
 
     case 0x06: //OR R1, R2, IMM
-      cpu->regs[(int)reg1] = cpu->regs[(int)reg1] | cpu->regs[(int)reg2];
-      update_flags(cpu, cpu->regs[(int)reg1]);
+      REG(reg1) = REG(reg1) | REG(reg2);
+      update_flags(cpu, REG(reg1));
       break;
 
     case 0x07: //XOR R1, R2, IMM
-      cpu->regs[(int)reg1] = cpu->regs[(int)reg1] ^ cpu->regs[(int)reg2];
-      update_flags(cpu, cpu->regs[(int)reg1]);
+      REG(reg1) = REG(reg1) ^ REG(reg2);
+      update_flags(cpu, REG(reg1));
       break;
 
     case 0x08: //NOT R1, R2
-      cpu->regs[(int)reg1] = ~cpu->regs[(int)reg2];
-      update_flags(cpu, cpu->regs[(int)reg1]);
+      REG(reg1) = ~REG(reg2);
+      update_flags(cpu, REG(reg1));
       break;
 
     case 0x09: //LD R1, [R2+imm]
-      cpu->regs[(int)reg1] = cpu_read8(cpu, cpu->regs[(int)reg2]+imm);
+      REG(reg1) = cpu_read8(cpu, REG(reg2)+imm);
       break;
 
     case 0x0A: //ST [R1+imm], R2
-      cpu_write(cpu, cpu->regs[(int)reg1]+imm, cpu->regs[(int)reg2]);
+      cpu_write(cpu, REG(reg1)+imm, REG(reg2));
       break;
 
     case 0x0C: //JMP R0+R1+IMM
-      cpu->pc = cpu->regs[(int)reg1]+cpu->regs[(int)reg2]+imm-4;
+      cpu->pc = REG(reg1)+REG(reg2)+imm-4;
       break;
 
     case 0x0E: //JZ R0+R1+imm
-      if(cpu->flags & FLAG_ZERO) cpu->pc = cpu->regs[(int)reg1]+cpu->regs[(int)reg2]+imm-4;
+      if(cpu->flags & FLAG_ZERO) cpu->pc = REG(reg1)+REG(reg2)+imm-4;
       break;
 
     case 0x10: //JNZ R0+R1+imm
-      if(!(cpu->flags & FLAG_ZERO)) cpu->pc = cpu->regs[(int)reg1]+cpu->regs[(int)reg2]+imm-4;
+      if(!(cpu->flags & FLAG_ZERO)) cpu->pc = REG(reg1)+REG(reg2)+imm-4;
       break;
 
     case 0x11: //INT imm
       switch(imm) {
         case 0x01: //PUTCHAR SUKA
-          putchar(cpu->regs[1]);
+          putchar(REG(1));
           break;
         case 0x02: //GETCHAR SUKA
-          cpu->regs[1] = getchar();
+          REG(1) = getchar();
       }
       break;
 
@@ -142,24 +136,24 @@ int cpu_step(risc_gc* cpu) {
       break;
 
     case 0x13: // SHL R1, R2, IMM
-      cpu->regs[(int)reg1] <<= cpu->regs[(int)reg2] + imm;
+      REG(reg1) <<= REG(reg2) + imm;
       break;
 
     case 0x14: // SHR R1, R2, IMM
-      cpu->regs[(int)reg1] >>= cpu->regs[(int)reg2] + imm;
+      REG(reg1) >>= REG(reg2) + imm;
       break;
 
     case 0x15: // PSH R1+IMM
-      push(cpu, cpu->regs[(int)reg1+imm]);
+      push(cpu, REG(reg1)+imm);
       break;
 
     case 0x16: // POP R1
-      cpu->regs[(int)reg1] = pop(cpu);
+      REG(reg1) = pop(cpu);
       break;
 
     case 0x17: // CALL R1+IMM
-      push(cpu, cpu->pc+4);
-      cpu->pc = cpu->regs[(int)reg1] + imm;
+      push(cpu, cpu->pc);
+      cpu->pc = REG(reg1) + imm - 4;
       break;
 
     case 0x18: // RET
@@ -167,11 +161,11 @@ int cpu_step(risc_gc* cpu) {
       break;
 
     case 0x19: // LW R1, [R2+IMM12]
-      cpu->regs[(int)reg1] = cpu_read16(cpu, cpu->regs[(int)reg2]+imm);
+      REG(reg1) = cpu_read16(cpu, REG(reg2)+imm);
       break;
 
     case 0x1A: // SW [R1+imm], R2
-      cpu_write16(cpu, cpu->regs[(int)reg1]+imm, cpu->regs[(int)reg2]);
+      cpu_write16(cpu, REG(reg1)+imm, REG(reg2));
       break;
 
     case 0x20: // CMP R1, R2, IMM
@@ -189,6 +183,9 @@ int cpu_step(risc_gc* cpu) {
 
 void cpu_dump(risc_gc* cpu) {
   printf("\033[3A\033[33mPC\033[0m: 0x%04X, \033[33mIR\033[0m: 0x%08X, \033[33mFLAGS\033[0m: 0b%016b  \n", cpu->pc, cpu->ir, cpu->flags);
+  /*for (uint16_t m = 0xBFF0; m < 0xC000; m++) {
+    printf("%02X ", cpu->memory[m]);
+  }*/
   for(int i = 0; i < NUM_REGS; i++) {
     printf("\033[32mR%02d\033[0m: 0x%04X ", i, cpu->regs[i]);
     if((i+1)%8==0) putchar('\n');
