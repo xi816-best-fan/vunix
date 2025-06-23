@@ -65,9 +65,9 @@ uint32_t write_dir(char* buf, char* name, char* path, uint32_t offset) {
   return offset;
 }
 
-int32_t main(void) {
+int32_t main(int argc, char** argv) {
   srand(time(NULL));
-  FILE* f = fopen("disk.img", "r+b");
+  FILE* f = fopen(argv[1], "r+b");
   if (!f) {
     fprintf(stderr, "ты чё даун нет диска\n");
     return 0;
@@ -79,10 +79,6 @@ int32_t main(void) {
   bits |= rand();
   offs = ins_U32(buf, MAGIC, offs);
   offs = ins_U64(buf, bits, offs);
-
-  offs = write_file(buf, "hello.txt", "/hello", "Hello World!", offs);
-  offs = write_dir(buf, "hello", "/hello", offs);
-  offs = ins_U8(buf, DISK_END, offs);
 
   fseek(f, 0, SEEK_SET);
   fwrite(buf, 1, MAX_DISK_SIZE, f);
