@@ -8,7 +8,10 @@ void shell() {
 	char str[128];
 	for(;;) {
 		printf("root@vunix: ");
-		fgets(str, sizeof(str), stdin);
+		if(fgets(str, sizeof(str), stdin)==NULL) { // когда вводишь Ctrl + D, оно получает EOF, из-за чего у тебя шелл просто возьмет и в бесконечный цикл уйдет. Для таких целей и нужно вставлять такое
+			printf("^D\n");
+			continue;
+		}
 		str[strcspn(str, "\n")] = '\0';
     if (!*str) {
       continue;
