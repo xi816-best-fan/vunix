@@ -128,6 +128,8 @@ int cpu_step(risc_gc* cpu) {
           break;
         case 0x02: //GETCHAR SUKA
           REG(1) = getchar();
+        case 0x03: //get processor info
+          REG(1) = 0x1001;
       }
       break;
 

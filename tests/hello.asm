@@ -7,8 +7,14 @@ loop:
   jz    end
   int   1
   jmp   loop
+inf:
+  jmp   inf
 end:
+  int   3
+  cmp   r1, $1001
+  jnz   inf
   hlt
 
-hello:  bytes "Hello, Пидорасы!$^@"
+
+hello:  bytes "Hello епта$^@"
 
