@@ -246,6 +246,7 @@ int main(int argc, char** argv) {
   FILE* f = fopen(filename, "r");
   if (!f) {
     puts("чмо нет такого файла");
+    free(cpu.memory);
     return -1;
   }
   fread(cpu.memory, 1, MEMORY_SIZE, f);
